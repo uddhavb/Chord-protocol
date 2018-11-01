@@ -3,7 +3,7 @@ Implemented from the research paper:
     Chord: A Scalable Peer-to-peer Lookup Protocol for Internet Applications
     Ion Stoica, Robert Morris, David Liben-Nowell, David R. Karger, M. Frans Kaashoek, Frank Dabek, Hari Balakrishnan
 '''
-
+import time
 list_of_nodes = []
 '''
 Define the node class and its functionalities
@@ -22,27 +22,59 @@ class node_class:
 
     # update the successor of a node
     def find_successor(self,id):
-        # print("find successor")
-        # print("id ",id, " ", self.node_value, " ", self.suc)
-        if (self.node_value < id <= self.suc) or (self.node_value > self.suc and (self.node_value < id < 2**hash_size or 0 <= id < self.suc)):
-            return self.suc
-        elif self.node_value == self.suc and self.suc == id:
-            return id
+        # time.sleep(2)
+        # print("find_successor")
+        if self.suc <= self.node_value:
+            # print("if")
+            if (self.node_value < id <= (2**hash_size) -1) or (0 <= id <= self.suc):
+                # print(self.suc)
+                return self.suc
+            else:
+                n1 = self.closest_preceding_node(id)
+                # print("preceding node",n1)
+                n1_node = get_object_from_value(n1)
+                return n1_node.find_successor(id)
         else:
-            n1 = self.closest_preceding_node(id)
-            n1_node = get_object_from_value(n1)
-            return n1_node.find_successor(id)
+            # print("else")
+            if (self.node_value < id <= self.suc):
+                # print(self.suc)
+                return self.suc
+            else:
+                n1 = self.closest_preceding_node(id)
+                # print("preceding node",n1)
+                n1_node = get_object_from_value(n1)
+                return n1_node.find_successor(id)
 
     def closest_preceding_node(self, id):
+        # time.sleep(2)
+        # print("closest preceding")
         for i in range(hash_size-1,-1,-1):
-            if (self.node_value < self.finger_table[i] < id) or (self.node_value > id and (self.node_value < self.finger_table[i] < 2**hash_size or 0 <= self.finger_table[i] < id )):
-                return self.finger_table[i]
+            if (self.node_value < id):
+                if (id > self.finger_table[i] > self.node_value):
+                    # print("if: ", self.finger_table[i])
+                    return self.finger_table[i]
+            else:
+                if ((2**hash_size) -1 >= self.finger_table[i] > self.node_value) or (0 <= self.finger_table[i] < self.node_value):
+                    # print("else: ", self.finger_table[i])
+                    return self.finger_table[i]
+            # if (id == self.node_value):
+            #     if (self.node_value < self.finger_table[i] <= (2**hash_size) -1) or (0 <= self.finger_table[i] < id):
+            #         print("if: ", self.finger_table[i])
+            #         return self.finger_table[i]
+            # else:
+            #     if (self.node_value < self.finger_table[i] < id):
+            #         print("else: ", self.finger_table[i])
+            #         return self.finger_table[i]
+        # print("nothing: ", self.node_value)
         return self.node_value
 
     def join(self,n1):
         self.pre = None
         n1_node = get_object_from_value(n1)
-        self.suc = n1_node.find_successor(self.node_value)
+        temp = n1_node.find_successor(self.node_value)
+        self.suc = temp
+        self.finger_table[0] = temp
+
 
     def stabilize(self):
         '''
@@ -55,12 +87,24 @@ class node_class:
             successor.notify(n);
         '''
         suc_node = get_object_from_value(self.suc)
-        x = suc_node.pre
+        # print("------------------------------", suc_node)
+        if suc_node == None:
+            x = None
+        else:
+            x = suc_node.pre
         if x != None:
-            if (self.node_value < x < self.suc) or (self.node_value > self.suc and (self.node_value < x < 2**hash_size or 0 <= x < self.suc)):
-                self.suc = x
-                suc_node = get_object_from_value(self.suc)
-        suc_node.notify(self.node_value)
+            if self.suc <= self.node_value:
+                if (self.node_value < x <= (2**hash_size) - 1) or (0 <= x < self.suc):
+                    self.suc = x
+                    self.finger_table[0] = x
+                    suc_node = get_object_from_value(self.suc)
+            else:
+                if (self.node_value < x < self.suc):
+                    self.suc = x
+                    self.finger_table[0] = x
+                    suc_node = get_object_from_value(self.suc)
+        if suc_node != None:
+            suc_node.notify(self.node_value)
 
     def notify(self,n1):
         '''
@@ -69,10 +113,14 @@ class node_class:
             if (predecessor is nil or n1 ∈ (predecessor, n))
                 predecessor = n1;
         '''
-        print("in notify")
-        if self.pre == None or ((self.pre < n1 < self.node_value) or (self.pre > self.node_value and (self.pre < n1 < 2**hash_size or 0 <= n1 < self.node_value))):
-            print("setting pre to", n1)
+        if self.pre == None:
             self.pre = n1
+        elif self.node_value <= self.pre:
+            if (self.pre < n1 <= (2**hash_size) - 1) or (0 <= n1 < self.node_value):
+                self.pre = n1
+        else:
+            if self.pre < n1 < self.node_value:
+                self.pre = n1
 
     def fix_fingers(self):
         '''
@@ -85,7 +133,10 @@ class node_class:
             finger[next] = find successor(n + 2^(next−1));
         '''
         for i in range(0,hash_size):
-            self.finger_table[i] = self.find_successor((self.node_value + 2**i)%(2**hash_size))
+            temp = self.find_successor((self.node_value + 2**i)%(2**hash_size))
+            self.finger_table[i] = temp
+            if i == 0:
+                self.suc = temp
 
     def check_predecessor(self):
         for object in list_of_nodes:
@@ -123,25 +174,27 @@ input_from_file = False
 if 'file_name' in globals():
     # we have a file input
     print(file_name)
-    lines = [line.rstrip('\n') for line in file]
+    file = open(file_name, 'r')
+    lines = file.readlines()
     input_from_file = True
-    line_index = 0
+    line_index = -1
 
 
 max_nodes = 0
 while True:
     if input_from_file:
-        if line_index >= len(lines):
-            break
         curr_input = lines[line_index]
         line_index += 1
+        if line_index >= len(lines):
+            break
     else:
         # take input manually from the user
         curr_input = input()
-
+    # print(lines[line_index], end="")
     '''
     Switch Cases:
     '''
+    # try:
     if curr_input == "end":
         # Exit from the program
         break
@@ -159,6 +212,9 @@ while True:
         node_val = int((curr_input.split())[1])
         for i, o in enumerate(list_of_nodes):
             if o.node_value == node_val:
+                list_of_nodes[(i-1)%(len(list_of_nodes))].suc = list_of_nodes[i].suc
+                list_of_nodes[(i-1)%(len(list_of_nodes))].finger_table[0] = list_of_nodes[i].suc
+                list_of_nodes[(i-1)%(len(list_of_nodes))].pre = list_of_nodes[i].pre
                 del list_of_nodes[i]
                 break
 
@@ -178,7 +234,7 @@ while True:
         node_val = int((curr_input.split())[1])
         get_object_from_value(node_val).stabilize()
 
-    elif curr_input == "list":
+    elif curr_input.startswith("list"):
         list_of_nodes.sort(key=lambda x: x.node_value)
         print("Nodes: ", end='')
         for node in list_of_nodes:
@@ -198,3 +254,5 @@ while True:
         for finger in node.finger_table:
             print(finger, " ", end="")
         print()
+    # except:
+    #     print("Wrong input")
