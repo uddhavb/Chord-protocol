@@ -22,22 +22,15 @@ class node_class:
 
     # update the successor of a node
     def find_successor(self,id):
-        # time.sleep(2)
-        # print("find_successor")
         if self.suc <= self.node_value:
-            # print("if")
             if (self.node_value < id <= (2**hash_size) -1) or (0 <= id <= self.suc):
-                # print(self.suc)
                 return self.suc
             else:
                 n1 = self.closest_preceding_node(id)
-                # print("preceding node",n1)
                 n1_node = get_object_from_value(n1)
                 return n1_node.find_successor(id)
         else:
-            # print("else")
             if (self.node_value < id <= self.suc):
-                # print(self.suc)
                 return self.suc
             else:
                 n1 = self.closest_preceding_node(id)
@@ -46,26 +39,13 @@ class node_class:
                 return n1_node.find_successor(id)
 
     def closest_preceding_node(self, id):
-        # time.sleep(2)
-        # print("closest preceding")
         for i in range(hash_size-1,-1,-1):
             if (self.node_value < id):
                 if (id > self.finger_table[i] > self.node_value):
-                    # print("if: ", self.finger_table[i])
                     return self.finger_table[i]
             else:
                 if ((2**hash_size) -1 >= self.finger_table[i] > self.node_value) or (0 <= self.finger_table[i] < self.node_value):
-                    # print("else: ", self.finger_table[i])
                     return self.finger_table[i]
-            # if (id == self.node_value):
-            #     if (self.node_value < self.finger_table[i] <= (2**hash_size) -1) or (0 <= self.finger_table[i] < id):
-            #         print("if: ", self.finger_table[i])
-            #         return self.finger_table[i]
-            # else:
-            #     if (self.node_value < self.finger_table[i] < id):
-            #         print("else: ", self.finger_table[i])
-            #         return self.finger_table[i]
-        # print("nothing: ", self.node_value)
         return self.node_value
 
     def join(self,n1):
@@ -74,7 +54,6 @@ class node_class:
         temp = n1_node.find_successor(self.node_value)
         self.suc = temp
         self.finger_table[0] = temp
-
 
     def stabilize(self):
         '''
@@ -86,6 +65,10 @@ class node_class:
                 successor = x;
             successor.notify(n);
         '''
+        if not any(x.node_value == self.pre for x in list_of_nodes):
+            self.pre = None
+        if not any(x.node_value == self.suc for x in list_of_nodes):
+            self.suc = self.node_value
         suc_node = get_object_from_value(self.suc)
         # print("------------------------------", suc_node)
         if suc_node == None:
@@ -214,11 +197,13 @@ while True:
 
         elif curr_input.startswith("drop"):
             node_val = int((curr_input.split())[1])
+            deleted_node = None
             for i, o in enumerate(list_of_nodes):
                 if o.node_value == node_val:
-                    list_of_nodes[(i-1)%(len(list_of_nodes))].suc = list_of_nodes[i].suc
-                    list_of_nodes[(i-1)%(len(list_of_nodes))].finger_table[0] = list_of_nodes[i].suc
-                    list_of_nodes[(i-1)%(len(list_of_nodes))].pre = list_of_nodes[i].pre
+                    deleted_node = o.node_value
+                    # list_of_nodes[(i-1)%(len(list_of_nodes))].suc = list_of_nodes[i].suc
+                    # list_of_nodes[(i-1)%(len(list_of_nodes))].finger_table[0] = list_of_nodes[i].suc
+                    # list_of_nodes[(i-1)%(len(list_of_nodes))].pre = list_of_nodes[i].pre
                     del list_of_nodes[i]
                     break
             print("Dropped node", node_val)
