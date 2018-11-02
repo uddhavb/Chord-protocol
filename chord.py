@@ -156,7 +156,7 @@ def get_object_from_value(n):
     return None
 
 import sys
-
+isWrongInput = False
 input1 = sys.argv[1]
 if input1 == '-i':
     file_name = sys.argv[2]
@@ -166,9 +166,13 @@ else:
 # convert hash_size to integer
 try:
     hash_size = int(hash_size)
+    if (hash_size<=0):
+        a = 1/0
+    if (type(hash_size) != type(1)):
+        a = 1/0
 except:
-    raise Exception("\n\n Wrong Input \n\n")
-
+    print("\nERROR: invalid hash_size", hash_size)
+    isWrongInput = True
 
 input_from_file = False
 if 'file_name' in globals():
@@ -179,9 +183,9 @@ if 'file_name' in globals():
     input_from_file = True
     line_index = -1
 
-
-max_nodes = 0
 while True:
+    if isWrongInput:
+        break
     if input_from_file:
         curr_input = lines[line_index]
         line_index += 1
@@ -190,69 +194,72 @@ while True:
     else:
         # take input manually from the user
         curr_input = input()
-    # print(lines[line_index], end="")
     '''
     Switch Cases:
     '''
-    # try:
-    if curr_input == "end":
-        # Exit from the program
-        break
-    elif curr_input.startswith("add"):
-        max_nodes += 1
-        if max_nodes > 2**hash_size:
-            printk("Maximum number of nodes reached. Can't add any more")
-        else:
+    try:
+        if curr_input == "end":
+            # Exit from the program
+            break
+        elif curr_input.startswith("add"):
             node_val = int((curr_input.split())[1])
-            new_node = node_class(node_val, hash_size)
-            list_of_nodes.append(new_node)
-            print("Added node ", node_val)
+            if any(x.node_value == node_val for x in list_of_nodes):
+                print("ERROR: Node",node_val,"exists")
+            if node_val < 0 or node_val >= 2**hash_size:
+                print("ERROR: node id must be in [0,"+str(2**hash_size)+")")
+            else:
+                new_node = node_class(node_val, hash_size)
+                list_of_nodes.append(new_node)
+                print("Added node", node_val)
 
-    elif curr_input.startswith("drop"):
-        node_val = int((curr_input.split())[1])
-        for i, o in enumerate(list_of_nodes):
-            if o.node_value == node_val:
-                list_of_nodes[(i-1)%(len(list_of_nodes))].suc = list_of_nodes[i].suc
-                list_of_nodes[(i-1)%(len(list_of_nodes))].finger_table[0] = list_of_nodes[i].suc
-                list_of_nodes[(i-1)%(len(list_of_nodes))].pre = list_of_nodes[i].pre
-                del list_of_nodes[i]
-                break
+        elif curr_input.startswith("drop"):
+            node_val = int((curr_input.split())[1])
+            for i, o in enumerate(list_of_nodes):
+                if o.node_value == node_val:
+                    list_of_nodes[(i-1)%(len(list_of_nodes))].suc = list_of_nodes[i].suc
+                    list_of_nodes[(i-1)%(len(list_of_nodes))].finger_table[0] = list_of_nodes[i].suc
+                    list_of_nodes[(i-1)%(len(list_of_nodes))].pre = list_of_nodes[i].pre
+                    del list_of_nodes[i]
+                    break
+            print("Dropped node", node_val)
 
-    elif curr_input.startswith("join"):
-        curr_input = curr_input.split()
-        node_1 = int(curr_input[1])
-        node_2 = int(curr_input[2])
-        get_object_from_value(node_1).join(node_2)
-
-
-    elif curr_input.startswith("fix"):
-        node_val = int((curr_input.split())[1])
-        get_object_from_value(node_val).fix_fingers()
+        elif curr_input.startswith("join"):
+            curr_input = curr_input.split()
+            node_1 = int(curr_input[1])
+            node_2 = int(curr_input[2])
+            get_object_from_value(node_1).join(node_2)
 
 
-    elif curr_input.startswith("stab"):
-        node_val = int((curr_input.split())[1])
-        get_object_from_value(node_val).stabilize()
+        elif curr_input.startswith("fix"):
+            node_val = int((curr_input.split())[1])
+            get_object_from_value(node_val).fix_fingers()
 
-    elif curr_input.startswith("list"):
-        list_of_nodes.sort(key=lambda x: x.node_value)
-        print("Nodes: ", end='')
-        for node in list_of_nodes:
-            print(node.node_value," ", end='')
-        print()
 
-    elif curr_input.startswith("showall"):
-        for node in list_of_nodes:
-            print("Node ", node.node_value, ": suc", node.suc, ", pre", node.pre, ", finger ", end="")
-            for finger in node.finger_table:
-                print(finger, " ", end="")
-            print()
-    elif curr_input.startswith("show"):
-        node_val = int((curr_input.split())[1])
-        node = get_object_from_value(node_val)
-        print("Node ", node.node_value, ": suc", node.suc, ", pre", node.pre, ", finger ", end="")
-        for finger in node.finger_table:
-            print(finger, " ", end="")
-        print()
-    # except:
-    #     print("Wrong input")
+        elif curr_input.startswith("stab"):
+            node_val = int((curr_input.split())[1])
+            get_object_from_value(node_val).stabilize()
+
+        elif curr_input.startswith("list"):
+            list_of_nodes.sort(key=lambda x: x.node_value)
+            print("Nodes: ", end='')
+            temp_list = []
+            for node in list_of_nodes:
+                temp_list.append(node.node_value)
+            print(*temp_list, sep = ", ")
+
+        elif curr_input.startswith("showall"):
+            for node in list_of_nodes:
+                print("Node " + str(node.node_value) + ": suc "+ str(node.suc) + ", pre "+str(node.pre)+", finger ", end="")
+                print(*node.finger_table, sep=", ")
+        elif curr_input.startswith("show"):
+            node_val = int((curr_input.split())[1])
+            node = get_object_from_value(node_val)
+            if node == None:
+                print("ERROR: Node",node_val,"does not exist")
+            else:
+                print("Node " + str(node.node_value) + ": suc "+ str(node.suc) + ", pre "+str(node.pre)+", finger ", end="")
+                print(*node.finger_table, sep=", ")
+    except ValueError:
+        print("ERROR: invalid integer", (curr_input.split())[1])
+    except:
+        print("ERROR: Wrong Input")
